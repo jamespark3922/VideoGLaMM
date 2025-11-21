@@ -179,7 +179,6 @@ if __name__ == "__main__":
                     pred_mask_i = pred_mask_i > 0
                     
                     mevis_output_save_dir = os.path.join(args.vis_save_path, f"{args.dataset_name.split('|')[0]}____{video_val_image_set}_output", f"{video_name}_{exp_id}")
-                    breakpoint()
                     if not os.path.exists(mevis_output_save_dir):
                         os.makedirs(mevis_output_save_dir)
                     
