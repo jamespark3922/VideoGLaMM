@@ -10,9 +10,7 @@ from collections import defaultdict
 import os
 from PIL import Image
 
-from utils.refer_datasets.mevis import MeVISBaseDataset
-from utils.refer_datasets.new.ytvos import ReferYouTubeVOSDataset
-from utils.refer_datasets.new.davis17 import ReferDAVISDataset
+from utils.refer_datasets.prolific import ProlificDataset
 
 
 from utils.grounding_utils.box_ops import masks_to_boxes
@@ -50,18 +48,26 @@ def parse_args():
     parser.add_argument("--base_model_type", type=str, default="vgpt|phi3", choices=["vgpt|phi3","vgpt|llama3_1", "chatunivi"])
     
     # Dataset parameters
-    parser.add_argument("--video_dataset_dir", default='/weka/oe-training-default/mm-olmo/video_datasets/mevis/MeViS_release/', type=str)
-    parser.add_argument("--dataset_name", default="MEVIS|valid", type=str, choices=["MEVIS|valid", "MEVIS|valid_u", 
-                                                                                    "ReferYouTubeVOS|valid", "ReferYouTubeVOS|test",
-                                                                                    "ReferDAVIS|valid"])
-                                                                                    
-    
+    parser.add_argument("--video_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/video_text_queries_filtered_111025_val/JPEGImages/', type=str)
+    parser.add_argument("--hf_ann_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/video_text_queries_filtered_111025_val/annotation/largest_center', type=str)
+    parser.add_argument("--dataset_name", default="prolific|all", type=str, choices=["prolific|all",
+                                                                                     "prolific|dance",
+                                                                                     "prolific|pedestrian",
+                                                                                     "prolific|animals",
+                                                                                     "prolific|general",
+                                                                                     "prolific|sports"])
+    parser.add_argument("--num_subsets", type=int, default=1)
+    parser.add_argument("--subset_id", type=int, default=0)
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     
     args = parse_args()
+    # Load dataset
+    eval_dataset = ProlificDataset(args.video_root, args.hf_ann_root)
+    data = eval_dataset[0]
+
+    video_val_image_set = args.dataset_name.split('|')[-1]
 
     # Load model, tokenizer, and image processor, conv_generator
     if args.base_model_type.split('|')[0] == "vgpt":
@@ -89,19 +95,6 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid base model type: {args.base_model_type}")
 
-    # Load dataset
-    if args.dataset_name.split('|')[0] == "MEVIS":
-        video_val_image_set = args.dataset_name.split('|')[-1] # 'valid_u' # 'valid'
-        eval_dataset = MeVISBaseDataset(args.video_dataset_dir, image_set=video_val_image_set, num_frames=-1)
-    elif args.dataset_name.split('|')[0] == "ReferYouTubeVOS":
-        video_val_image_set = args.dataset_name.split('|')[-1]
-        eval_dataset = ReferYouTubeVOSDataset(args.video_dataset_dir, split=video_val_image_set)
-    elif args.dataset_name.split('|')[0] == "ReferDAVIS":
-        video_val_image_set = args.dataset_name.split('|')[-1]
-        eval_dataset = ReferDAVISDataset(args.video_dataset_dir, split=video_val_image_set)
-    else:
-        raise ValueError(f"Invalid dataset name: {args.dataset_name}")
-
 
     def clean_caption(text_output):
         text_output_ = text_output.replace("\n", "").replace("  ", " ")
@@ -118,8 +111,10 @@ if __name__ == "__main__":
         
         return cleaned_str, phrases
 
+    indices = range(len(eval_dataset))
+    indices = np.array_split(indices, args.num_subsets)[args.subset_id]
 
-    for idx in tqdm(range(len(eval_dataset))):
+    for idx in tqdm(indices):
     # split in 4
     
     # for idx in tqdm(range(0 ,len(eval_dataset)//4)):
@@ -183,15 +178,12 @@ if __name__ == "__main__":
                 for obj_id, pred_mask_i in pred_mask.items():
                     pred_mask_i = pred_mask_i > 0
                     
-                    mevis_output_save_dir = os.path.join(args.vis_save_path, f"{args.dataset_name.split('|')[0]}____{video_val_image_set}_output", video_name, exp_id)
+                    mevis_output_save_dir = os.path.join(args.vis_save_path, f"{args.dataset_name.split('|')[0]}____{video_val_image_set}_output", f"{video_name}_{exp_id}")
+                    breakpoint()
                     if not os.path.exists(mevis_output_save_dir):
                         os.makedirs(mevis_output_save_dir)
                     
-                    
-                    if args.dataset_name.split('|')[0] == "ReferYouTubeVOS" or args.dataset_name.split('|')[0] == "ReferDAVIS":
-                        output_path = os.path.join(mevis_output_save_dir, f"{target['frame_ids'][t]}.png")
-                    else:
-                        output_path = os.path.join(mevis_output_save_dir, f"{t:05d}.png")
+                    output_path = os.path.join(mevis_output_save_dir, f"{t:05d}.png")
                     
                     mask_array = pred_mask_i
                     mask_array = (mask_array * 255).astype(np.uint8)

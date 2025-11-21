@@ -166,7 +166,7 @@ class MeVISBaseDataset(Dataset):
         self.image_set = image_set
         assert self.image_set in ["train", "valid", "valid_u"], f"invalid image_set:{self.image_set}"
         
-        mevis_root = os.path.join(base_video_dataset_dir, "mevis")
+        mevis_root = base_video_dataset_dir # os.path.join(base_video_dataset_dir, "mevis")
         self.dataset = load_mevis_json(mevis_root, self.image_set)
         print("Done loading {} samples.".format(len(self.dataset)))
         
