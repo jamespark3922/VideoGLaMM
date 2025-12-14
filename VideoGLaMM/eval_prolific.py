@@ -48,14 +48,17 @@ def parse_args():
     parser.add_argument("--base_model_type", type=str, default="vgpt|phi3", choices=["vgpt|phi3","vgpt|llama3_1", "chatunivi"])
     
     # Dataset parameters
-    parser.add_argument("--video_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/video_text_queries_filtered_111025_val/JPEGImages/', type=str)
-    parser.add_argument("--hf_ann_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/video_text_queries_filtered_111025_val/annotation/largest_center', type=str)
+    parser.add_argument("--video_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/molmo2_track_benchmark_121325_final/JPEGImages/', type=str)
+    parser.add_argument("--hf_ann_root", default='/weka/oe-training-default/mm-olmo/video_datasets/prolific/molmo2_track_benchmark_121325_final/annotation/largest_center', type=str)
     parser.add_argument("--dataset_name", default="prolific|all", type=str, choices=["prolific|all",
                                                                                      "prolific|dance",
                                                                                      "prolific|pedestrian",
                                                                                      "prolific|animals",
                                                                                      "prolific|general",
-                                                                                     "prolific|sports"])
+                                                                                     "prolific|sports",
+                                                                                     "prolific|person",
+                                                                                     "prolific|misc"
+                                                                                     ])
     parser.add_argument("--num_subsets", type=int, default=1)
     parser.add_argument("--subset_id", type=int, default=0)
     return parser.parse_args()
